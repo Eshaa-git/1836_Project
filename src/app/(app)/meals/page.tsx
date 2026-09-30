@@ -7,7 +7,7 @@ export default function Page() {
   return (
     <SectionPlaceholder
       navKey="meals"
-      upcoming={["Daily meal plan", "7 & 14-day plans", "Food logging", "Replace a meal"]}
+      upcoming={["Log by meal", "Skipped vs not logged", "Saved meals", "Search history"]}
     />
   );
 }

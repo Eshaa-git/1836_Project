@@ -1,7 +1,7 @@
 import { describeNutrientProgress, type NutrientProgressState } from "@/lib/nutrient-progress";
 import { cn } from "@/lib/utils";
 
-type Tone = "energy" | "protein" | "carbs" | "fat" | "fiber";
+type Tone = "energy" | "protein" | "carbs" | "fat" | "fiber" | "water" | "sleep";
 
 const barTone: Record<Tone, string> = {
   energy: "bg-energy",
@@ -9,6 +9,8 @@ const barTone: Record<Tone, string> = {
   carbs: "bg-carbs",
   fat: "bg-fat",
   fiber: "bg-fiber",
+  water: "bg-water",
+  sleep: "bg-sleep",
 };
 
 const stateHint: Record<NutrientProgressState, string | null> = {

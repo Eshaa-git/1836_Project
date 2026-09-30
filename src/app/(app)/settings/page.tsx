@@ -7,7 +7,7 @@ export default function Page() {
   return (
     <SectionPlaceholder
       navKey="settings"
-      upcoming={["Units & timezone", "Reminders", "Coaching tone", "Delete account"]}
+      upcoming={["Reminders", "Units & timezone", "Your data & privacy", "Delete account"]}
     />
   );
 }

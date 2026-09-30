@@ -7,7 +7,7 @@ export default function Page() {
   return (
     <SectionPlaceholder
       navKey="progress"
-      upcoming={["Weight trend", "Consistency", "Strength progress", "Weekly review"]}
+      upcoming={["Day-end summary", "7 days – 6 months", "Streaks & milestones", "Hydration & sleep"]}
     />
   );
 }

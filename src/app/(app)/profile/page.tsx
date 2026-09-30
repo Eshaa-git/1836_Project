@@ -7,7 +7,7 @@ export default function Page() {
   return (
     <SectionPlaceholder
       navKey="profile"
-      upcoming={["Body measurements", "Goals & history", "Nutrition targets"]}
+      upcoming={["Basics & optional details", "Goals & timeline", "Daily targets", "Your motivation"]}
     />
   );
 }

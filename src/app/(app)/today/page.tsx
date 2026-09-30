@@ -1,15 +1,6 @@
 import type { Metadata, Route } from "next";
 import Link from "next/link";
-import {
-  CalendarPlus,
-  Dumbbell,
-  PackagePlus,
-  Plus,
-  Refrigerator,
-  TrendingUp,
-  UtensilsCrossed,
-  type LucideIcon,
-} from "lucide-react";
+import { Bot, Compass, Droplet, Dumbbell, Plus, UtensilsCrossed, type LucideIcon } from "lucide-react";
 import { EmptyState } from "@/components/common/empty-state";
 import { NutrientProgressRow } from "@/components/common/nutrient-progress-row";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,12 +10,12 @@ export const metadata: Metadata = { title: "Today" };
 
 const quickActions: { label: string; href: Route; icon: LucideIcon }[] = [
   { label: "Log food", href: "/meals", icon: Plus },
-  { label: "Start workout", href: "/workouts", icon: Dumbbell },
-  { label: "Add to pantry", href: "/pantry", icon: PackagePlus },
-  { label: "Plan meal", href: "/meals", icon: CalendarPlus },
+  { label: "Ask coach", href: "/coach", icon: Bot },
+  { label: "Log water", href: "/today", icon: Droplet },
+  { label: "Log workout", href: "/workouts", icon: Dumbbell },
 ];
 
-// Until targets and food logs exist (Phases 3 & 8) every value is unknown — shown as "—", never 0.
+// Until targets and logs exist every value is unknown — shown as "—", never 0.
 const nutrients = [
   { name: "Calories", unit: "kcal", tone: "energy" },
   { name: "Protein", unit: "g", tone: "protein" },
@@ -53,30 +44,27 @@ export default function TodayPage() {
         ))}
       </nav>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card className="rounded-3xl md:row-span-2">
-          <CardHeader>
-            <CardTitle>Today&apos;s meals</CardTitle>
-            <CardDescription>Breakfast, lunch, dinner and snacks</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <EmptyState
-              size="sm"
-              icon={UtensilsCrossed}
-              title="No meals planned yet"
-              description="Once your profile and pantry are set up, we'll suggest meals that fit your targets."
-            />
-          </CardContent>
-        </Card>
+      <Card className="rounded-3xl border-primary/20 bg-secondary/60">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Compass className="size-4 text-primary" aria-hidden /> Focus next
+          </CardTitle>
+          <CardDescription>
+            Set up your profile and daily targets, then tell the coach what you&apos;ve eaten — it will
+            suggest what to eat next.
+          </CardDescription>
+        </CardHeader>
+      </Card>
 
+      <div className="grid gap-4 md:grid-cols-2">
         <Card className="rounded-3xl">
           <CardHeader>
             <CardTitle>Nutrition</CardTitle>
-            <CardDescription>Only food you&apos;ve eaten counts here</CardDescription>
+            <CardDescription>Target → eaten → remaining</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="rounded-xl bg-muted px-3 py-2 text-sm text-muted-foreground">
-              Your daily targets are calculated when you finish setting up your profile.
+              You&apos;ll set your daily targets in your profile.
             </p>
             {nutrients.map((n) => (
               <NutrientProgressRow key={n.name} {...n} consumed={null} target={null} hideHint />
@@ -86,42 +74,39 @@ export default function TodayPage() {
 
         <Card className="rounded-3xl">
           <CardHeader>
-            <CardTitle>Today&apos;s workout</CardTitle>
+            <CardTitle>Today&apos;s meals</CardTitle>
+            <CardDescription>Logged, skipped, not logged yet, or upcoming</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <EmptyState
+              size="sm"
+              icon={UtensilsCrossed}
+              title="No meals logged yet"
+              description="Tell the coach what you ate — “two eggs and a medium apple” is enough."
+            />
+          </CardContent>
+        </Card>
+
+        <Card className="rounded-3xl">
+          <CardHeader>
+            <CardTitle>Hydration &amp; sleep</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <NutrientProgressRow name="Water" unit="ml" tone="water" consumed={null} target={null} />
+            <NutrientProgressRow name="Sleep" unit="h" tone="sleep" consumed={null} target={null} />
+          </CardContent>
+        </Card>
+
+        <Card className="rounded-3xl">
+          <CardHeader>
+            <CardTitle>Workout</CardTitle>
           </CardHeader>
           <CardContent>
             <EmptyState
               size="sm"
               icon={Dumbbell}
-              title="Nothing scheduled"
-              description="Log any activity — walks count too."
-            />
-          </CardContent>
-        </Card>
-
-        <Card className="rounded-3xl">
-          <CardHeader>
-            <CardTitle>Pantry alerts</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <EmptyState
-              size="sm"
-              icon={Refrigerator}
-              title="No alerts"
-              description="Items close to their use-by date will show up here."
-            />
-          </CardContent>
-        </Card>
-
-        <Card className="rounded-3xl">
-          <CardHeader>
-            <CardTitle>Progress</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <EmptyState
-              size="sm"
-              icon={TrendingUp}
-              title="Not enough data yet"
-              description="Trends appear after a few days of measurements and logs."
+              title="Nothing logged today"
+              description="Just mark a workout done, or add sets and reps if you want to track progress."
             />
           </CardContent>
         </Card>

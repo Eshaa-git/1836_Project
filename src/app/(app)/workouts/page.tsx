@@ -7,7 +7,7 @@ export default function Page() {
   return (
     <SectionPlaceholder
       navKey="workouts"
-      upcoming={["Templates", "Rest timer", "Personal records", "History"]}
+      upcoming={["Quick “done” logging", "Sets, reps & cardio", "Previous vs today", "Personal bests"]}
     />
   );
 }

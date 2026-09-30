@@ -5,6 +5,14 @@ export const metadata: Metadata = { title: "AI Coach" };
 
 export default function Page() {
   return (
-    <SectionPlaceholder navKey="coach" upcoming={["Ask about meals", "Pantry ideas", "Weekly summaries"]} />
+    <SectionPlaceholder
+      navKey="coach"
+      upcoming={[
+        "Log food by chatting",
+        "What should I eat next?",
+        "Cook from what you have",
+        "Substitutions",
+      ]}
+    />
   );
 }

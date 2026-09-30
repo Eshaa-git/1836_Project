@@ -22,7 +22,7 @@ test("today shows unknown nutrition as a dash, never zero", async ({ page }) => 
 
 test("main navigation reaches every section", async ({ page, isMobile }) => {
   await page.goto("/today");
-  const sections = ["Meals", "Pantry", "Workouts"];
+  const sections = ["AI Coach", "Meals", "Workouts"];
   for (const name of sections) {
     await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name }).click();
     await expect(page.getByRole("heading", { level: 1, name })).toBeVisible();
@@ -30,13 +30,13 @@ test("main navigation reaches every section", async ({ page, isMobile }) => {
 
   // Secondary sections live in the sidebar on desktop and under "More" on mobile.
   if (isMobile) await page.getByRole("button", { name: "More" }).click();
-  await page.getByRole("link", { name: "Recipes" }).click();
-  await expect(page.getByRole("heading", { level: 1, name: "Recipes" })).toBeVisible();
+  await page.getByRole("link", { name: "Progress" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Progress" })).toBeVisible();
   if (isMobile) {
     // The sheet closes after navigating.
     await expect(page.getByRole("dialog")).toHaveCount(0);
   } else {
-    await expect(page.getByRole("link", { name: "Recipes" })).toHaveAttribute("aria-current", "page");
+    await expect(page.getByRole("link", { name: "Progress" })).toHaveAttribute("aria-current", "page");
   }
 });
 
