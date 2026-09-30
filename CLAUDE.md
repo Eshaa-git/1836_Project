@@ -21,6 +21,13 @@ Read `docs/architecture.md` before making structural changes.
 - `src/features/<feature>` UI + thin actions; `src/components/ui` is shadcn (generated — edit sparingly).
 - Prisma client is generated to `src/generated/prisma` (gitignored); import from `@/generated/prisma/client`.
 
+## Gotchas
+
+- `defineAction` requires a signed-in user unless `auth: "public"`; use `requireUserContext()` in route handlers.
+- Prisma 7 `migrate` does not regenerate the client — run `npm run db:generate` after schema changes.
+- Every new user-owned table needs `onDelete: Cascade` to `User` and coverage in the deletion test (docs/privacy.md).
+- Prisma blocks `migrate reset` for AI agents; ask the user to run it if a reset is truly needed.
+
 ## Commands
 
 - `npm run db:start` (keep running) · `npm run dev` · `npm run check` (lint, types, format, tests)

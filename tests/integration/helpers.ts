@@ -9,3 +9,8 @@ export async function resetDatabase() {
   const list = tables.map((t) => `"public"."${t.tablename}"`).join(", ");
   await db.$executeRawUnsafe(`TRUNCATE TABLE ${list} RESTART IDENTITY CASCADE`);
 }
+
+/** Inserts a bare user row (no credentials) for tests that don't exercise auth. */
+export function createTestUser(email: string) {
+  return db.user.create({ data: { email, name: "Test User" } });
+}

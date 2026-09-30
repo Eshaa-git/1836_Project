@@ -3,14 +3,14 @@ import { createContext } from "@/server/lib/context";
 import { db } from "@/server/lib/db";
 import { listAuditLogsForUser } from "@/server/repositories/audit-log";
 import { recordAudit } from "@/server/services/audit";
-import { resetDatabase } from "./helpers";
+import { createTestUser, resetDatabase } from "./helpers";
 
 beforeEach(resetDatabase);
 afterAll(() => db.$disconnect());
 
 describe("audit log", () => {
   it("records an event attributed to the current user", async () => {
-    const user = await db.user.create({ data: { email: "a@example.com" } });
+    const user = await createTestUser("a@example.com");
     const ctx = createContext({ userId: user.id });
 
     await recordAudit(ctx, { action: "profile.updated", entityType: "UserProfile", entityId: user.id });
@@ -24,8 +24,8 @@ describe("audit log", () => {
   });
 
   it("only lists events belonging to the requested user", async () => {
-    const alice = await db.user.create({ data: { email: "alice@example.com" } });
-    const bob = await db.user.create({ data: { email: "bob@example.com" } });
+    const alice = await createTestUser("alice@example.com");
+    const bob = await createTestUser("bob@example.com");
     await recordAudit(createContext({ userId: alice.id }), { action: "a" });
     await recordAudit(createContext({ userId: bob.id }), { action: "b" });
 
@@ -34,7 +34,7 @@ describe("audit log", () => {
   });
 
   it("keeps the event but removes the user link when the user is deleted", async () => {
-    const user = await db.user.create({ data: { email: "gone@example.com" } });
+    const user = await createTestUser("gone@example.com");
     await recordAudit(createContext({ userId: user.id }), { action: "account.deleted" });
 
     await db.user.delete({ where: { id: user.id } });
@@ -45,7 +45,7 @@ describe("audit log", () => {
   });
 
   it("commits audit rows atomically with the surrounding transaction", async () => {
-    const user = await db.user.create({ data: { email: "tx@example.com" } });
+    const user = await createTestUser("tx@example.com");
     const ctx = createContext({ userId: user.id });
 
     await expect(

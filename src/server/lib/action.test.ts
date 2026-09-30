@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { defineAction } from "./action";
 import { createContext } from "./context";
-import { NotFoundError, SafetyError } from "./errors";
+import { NotFoundError, SafetyError, UnauthorizedError } from "./errors";
 
 const schema = z.object({ servings: z.number().int().positive() });
 const context = () => createContext({ requestId: "req-1234567890" });
@@ -72,5 +72,24 @@ describe("defineAction", () => {
       expect(result.error.message).not.toContain("secret");
       expect(result.error.message).toContain("req-1234");
     }
+  });
+
+  it("rejects callers whose context cannot be resolved (signed out)", async () => {
+    let called = false;
+    const action = defineAction(
+      schema,
+      async () => {
+        called = true;
+      },
+      {
+        name: "private",
+        context: () => {
+          throw new UnauthorizedError();
+        },
+      },
+    );
+    const result = await action({ servings: 1 });
+    expect(called).toBe(false);
+    expect(!result.ok && result.error.code).toBe("UNAUTHORIZED");
   });
 });

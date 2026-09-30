@@ -104,6 +104,19 @@ server/ai (Claude, tools)  →  calls the same services; the model never writes 
 - **repositories**: Prisma queries; user-owned reads/writes require `userId`.
 - **lib**: `env`, `db`, `logger`, `errors` (typed `AppError`s), `action` (`defineAction`), `context`.
 
+### Authentication
+
+- Better Auth (`src/server/auth/auth.ts`) serves `/api/auth/*`: email + password, database sessions (30 days,
+  sliding), scrypt hashes, password reset by emailed single-use link, sign-out of other devices, account
+  deletion. Rate limits per IP are stored in Postgres (`AUTH_RATE_LIMIT`, on by default except `next dev`).
+- `src/proxy.ts` does an **optimistic** cookie check to redirect signed-out visitors (keeping `?next=`).
+  The real checks are `requireSessionOrRedirect()` in the `(app)` layout and `defineAction`, which **requires a
+  signed-in user by default** (`auth: "public"` opts out).
+- Audit events: `auth.registered`, `auth.signed_in`, `auth.password_reset`, `account.deleted`.
+- Email uses a transport interface; `console` logs messages and keeps an in-memory outbox for tests. A real
+  provider will be added before launch.
+- Data handling and the deletion policy are described in [privacy.md](privacy.md).
+
 Server actions return `ActionResult<T>`. Unexpected errors are logged with the request id and shown to users
 only as a generic message with a reference.
 
@@ -130,7 +143,7 @@ only as a generic message with a reference.
 | #   | Phase                          | Scope                                                                                                                                                                    | Status |
 | --- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------ |
 | 0   | Foundation                     | Tooling, database, shell, testing, CI                                                                                                                                    | ✅     |
-| 1   | Authentication and account     | Register, login, logout, reset, sessions, protected routes, delete account                                                                                               |        |
+| 1   | Authentication and account     | Register, login, logout, reset, sessions, protected routes, delete account                                                                                               | ✅     |
 | 2   | Profile, restrictions, goals   | Basic + optional profile, routine and meal count, four restriction categories, goals with lifecycle and history, motivation, manual targets (safety-checked)             |        |
 | 3   | Food data and nutrition engine | USDA import, household portions, unit conversion, UNKNOWN-aware totals, estimates, allergen tagging                                                                      |        |
 | 4   | Food logging                   | Meal slots and statuses, target → eaten → remaining, edit/delete, saved meals, re-log, history search, hydration and sleep logs                                          |        |

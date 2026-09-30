@@ -29,9 +29,11 @@ export default function LandingPage() {
             it as you go.
           </p>
           <div className="flex flex-wrap gap-3">
-            {/* Points at the app directly until sign-up exists (Phase 1). */}
             <Button asChild size="lg" className="h-11 px-5 text-base">
-              <Link href="/today">Get started</Link>
+              <Link href="/register">Get started</Link>
+            </Button>
+            <Button asChild size="lg" variant="outline" className="h-11 px-5 text-base">
+              <Link href="/login">Sign in</Link>
             </Button>
           </div>
         </section>

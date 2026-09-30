@@ -2,7 +2,8 @@
 
 Plan meals from what you have, track workouts, and see real progress.
 
-See [docs/architecture.md](docs/architecture.md) for the architecture and phase plan.
+See [docs/architecture.md](docs/architecture.md) for the architecture and phase plan, and
+[docs/privacy.md](docs/privacy.md) for data handling and account deletion.
 
 ## Requirements
 
@@ -14,13 +15,17 @@ See [docs/architecture.md](docs/architecture.md) for the architecture and phase 
 ```bash
 npm install
 cp .env.example .env
-cp .env.example .env.test && sed -i '' 's/nourish_dev/nourish_test/' .env.test   # macOS sed
+# put a real secret in .env:  BETTER_AUTH_SECRET="$(openssl rand -base64 32)"
+sed 's/nourish_dev/nourish_test/' .env > .env.test
 npx playwright install chromium        # once, for end-to-end tests
 
 npm run db:start                        # terminal 1 — leave running
 npm run db:deploy                       # terminal 2 — apply migrations to nourish_dev
 npm run dev                             # http://localhost:3000
 ```
+
+Password-reset emails are printed in the `npm run dev` output (`EMAIL_TRANSPORT="console"`).
+Auth rate limiting is off under `next dev`; set `AUTH_RATE_LIMIT="on"` to try it locally.
 
 To use a different Postgres (Postgres.app, Neon, Supabase…), set `DATABASE_URL` in `.env` / `.env.test`
 and skip `db:start`.

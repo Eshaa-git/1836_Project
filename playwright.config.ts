@@ -23,7 +23,10 @@ export default defineConfig({
     env: {
       DATABASE_URL:
         process.env.E2E_DATABASE_URL ?? "postgresql://postgres:postgres@localhost:54329/nourish_test",
+      APP_URL: baseURL,
       LOG_LEVEL: "warn",
+      // Many test accounts sign up from one IP; rate limiting has its own integration test.
+      AUTH_RATE_LIMIT: "off",
     },
   },
 });

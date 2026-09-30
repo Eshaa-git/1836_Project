@@ -32,7 +32,11 @@ jobs:
         with:
           node-version: 24
           cache: npm
-      - run: cp .env.example .env && cp .env.example .env.test && sed -i 's/nourish_dev/nourish_test/' .env.test
+      - name: Create env files
+        run: |
+          cp .env.example .env
+          sed -i "s|^BETTER_AUTH_SECRET=.*|BETTER_AUTH_SECRET=\"$(openssl rand -base64 32)\"|" .env
+          sed 's/nourish_dev/nourish_test/' .env > .env.test
       - run: npm ci
       - run: npm run lint
       - run: npm run typecheck

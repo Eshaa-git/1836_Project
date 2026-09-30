@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 test("health endpoint reports the database as reachable", async ({ request }) => {
   const res = await request.get("/api/health");
@@ -6,24 +6,25 @@ test("health endpoint reports the database as reachable", async ({ request }) =>
   expect(await res.json()).toEqual({ status: "ok", database: "ok" });
 });
 
-test("landing page leads into the app", async ({ page }) => {
+test("landing page offers sign up and sign in", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1 })).toContainText("kitchen you already have");
   await page.getByRole("link", { name: "Get started" }).click();
-  await expect(page).toHaveURL(/\/today$/);
+  await expect(page).toHaveURL(/\/register$/);
 });
 
-test("today shows unknown nutrition as a dash, never zero", async ({ page }) => {
+test("today shows unknown nutrition as a dash, never zero", async ({ page, user }) => {
+  void user;
   await page.goto("/today");
   const calories = page.getByRole("progressbar", { name: "Calories" });
   await expect(calories).toHaveAttribute("aria-valuetext", /— \/ — kcal, no target yet/);
   await expect(page.getByText("0 / ")).toHaveCount(0);
 });
 
-test("main navigation reaches every section", async ({ page, isMobile }) => {
+test("main navigation reaches every section", async ({ page, isMobile, user }) => {
+  void user;
   await page.goto("/today");
-  const sections = ["AI Coach", "Meals", "Workouts"];
-  for (const name of sections) {
+  for (const name of ["AI Coach", "Meals", "Workouts"]) {
     await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name }).click();
     await expect(page.getByRole("heading", { level: 1, name })).toBeVisible();
   }
@@ -33,7 +34,6 @@ test("main navigation reaches every section", async ({ page, isMobile }) => {
   await page.getByRole("link", { name: "Progress" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Progress" })).toBeVisible();
   if (isMobile) {
-    // The sheet closes after navigating.
     await expect(page.getByRole("dialog")).toHaveCount(0);
   } else {
     await expect(page.getByRole("link", { name: "Progress" })).toHaveAttribute("aria-current", "page");
@@ -41,7 +41,7 @@ test("main navigation reaches every section", async ({ page, isMobile }) => {
 });
 
 test("theme can be switched to dark", async ({ page }) => {
-  await page.goto("/today");
+  await page.goto("/");
   await page.getByRole("button", { name: "Change theme" }).click();
   await page.getByRole("menuitemradio", { name: "Dark" }).click();
   await expect(page.locator("html")).toHaveClass(/dark/);
