@@ -1,0 +1,28 @@
+@AGENTS.md
+
+# Nourish — project notes for AI assistants
+
+Read `docs/architecture.md` before making structural changes.
+
+## Non-negotiable rules
+
+- **LLM for reasoning and explanation; application logic for truth and enforcement.** Allergy filtering,
+  nutrition arithmetic, pantry reservations/deductions, meal state transitions, auth and permissions are
+  deterministic code in `src/server/domain` / `src/server/services` — never delegated to the AI.
+- **Missing data is UNKNOWN, never zero.** Use `null` for unknown nutrients/measurements; never coalesce to 0.
+- **History is append-only** for goals, nutrition targets, measurements and inventory changes.
+- Every user-owned query is scoped by `userId` in the repository layer.
+- No business logic in React components; UI → server action → service → domain.
+
+## Layout
+
+- `src/server/domain` pure functions (no I/O), `src/server/services` use-cases/transactions,
+  `src/server/repositories` Prisma access, `src/server/lib` env/db/logger/errors/action helper.
+- `src/features/<feature>` UI + thin actions; `src/components/ui` is shadcn (generated — edit sparingly).
+- Prisma client is generated to `src/generated/prisma` (gitignored); import from `@/generated/prisma/client`.
+
+## Commands
+
+- `npm run db:start` (keep running) · `npm run dev` · `npm run check` (lint, types, format, tests)
+- `npm run db:migrate -- --name <change>` after editing `prisma/schema.prisma`
+- `npm run test:e2e` (builds and serves against the test DB)

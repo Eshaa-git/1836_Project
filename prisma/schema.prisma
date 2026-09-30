@@ -1,0 +1,60 @@
+// Nourish database schema.
+//
+// Conventions (see docs/architecture.md):
+// - Primary keys are UUIDv7 (time-sortable).
+// - Tables and columns are snake_case in Postgres, camelCase in TypeScript.
+// - User-owned tables carry a user_id FK and an index that starts with user_id.
+// - Nullable nutrient/measurement columns mean UNKNOWN, never zero.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Minimal identity record. Phase 1 (authentication) extends this with
+// sessions, accounts and verification tokens.
+model User {
+  id            String   @id @default(uuid(7)) @db.Uuid
+  email         String   @unique
+  name          String?
+  emailVerified Boolean  @default(false) @map("email_verified")
+  image         String?
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  auditLogs AuditLog[]
+
+  @@map("users")
+}
+
+enum AuditActorType {
+  USER
+  SYSTEM
+  AI
+
+  @@map("audit_actor_type")
+}
+
+// Append-only record of security- and data-relevant events. When a user is
+// deleted, user_id is nulled so the event survives without identifying them.
+model AuditLog {
+  id         String         @id @default(uuid(7)) @db.Uuid
+  userId     String?        @map("user_id") @db.Uuid
+  actorType  AuditActorType @map("actor_type")
+  action     String
+  entityType String?        @map("entity_type")
+  entityId   String?        @map("entity_id")
+  metadata   Json?
+  requestId  String?        @map("request_id")
+  createdAt  DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([action, createdAt])
+  @@map("audit_logs")
+}
