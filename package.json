@@ -21,7 +21,8 @@
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
     "postinstall": "prisma generate",
-    "check": "npm run lint && npm run typecheck && npm run format:check && npm test"
+    "check": "npm run lint && npm run typecheck && npm run format:check && npm test",
+    "db:import-foods": "tsx scripts/import-foods.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.0",

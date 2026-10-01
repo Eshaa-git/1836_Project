@@ -36,6 +36,7 @@ model User {
   goalEvents          GoalEvent[]
   goalMilestones      GoalMilestone[]
   dailyTargets        DailyTarget[]
+  customFoods         Food[]
 
   @@map("users")
 }
@@ -413,4 +414,120 @@ model DailyTarget {
 
   @@index([userId, effectiveFrom])
   @@map("daily_targets")
+}
+
+// ─── Foods ───────────────────────────────────────────────────────────────────
+// Reference data (USDA SR Legacy, curated dishes) plus, later, user-created
+// foods. Nutrient values are per 100 g; NULL means UNKNOWN, never zero.
+
+enum FoodSource {
+  USDA_SR_LEGACY
+  CURATED
+  USER
+
+  @@map("food_source")
+}
+
+enum AllergenAssessment {
+  ASSESSED
+  UNVERIFIED
+
+  @@map("allergen_assessment")
+}
+
+enum AllergenPresence {
+  CONTAINS
+  MAY_CONTAIN
+
+  @@map("allergen_presence")
+}
+
+model Food {
+  id                 String             @id @default(uuid(7)) @db.Uuid
+  source             FoodSource
+  /// Identifier within the source (USDA fdcId, curated slug).
+  sourceId           String             @map("source_id")
+  sourceVersion      String?            @map("source_version")
+  /// Owner for USER foods; NULL for shared reference foods.
+  userId             String?            @map("user_id") @db.Uuid
+  name               String
+  category           String?
+  /// Extra names people use ("curd", "toor dal").
+  aliases            String[]           @default([])
+  /// Lower-cased name + aliases, indexed with pg_trgm for fuzzy search.
+  searchText         String             @map("search_text")
+  /// Values are approximate (curated dishes, typical recipes).
+  isEstimate         Boolean            @default(false) @map("is_estimate")
+  /// How the values were derived (e.g. curated recipe ingredients).
+  basis              Json?
+  allergenAssessment AllergenAssessment @default(UNVERIFIED) @map("allergen_assessment")
+  /// Ranking hint for common everyday foods.
+  isCommon           Boolean            @default(false) @map("is_common")
+  createdAt          DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user      User?          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nutrition FoodNutrition?
+  portions  FoodPortion[]
+  allergens FoodAllergen[]
+
+  @@unique([source, sourceId])
+  @@index([userId])
+  @@map("foods")
+}
+
+model FoodNutrition {
+  foodId        String @id @map("food_id") @db.Uuid
+  energyKcal    Float? @map("energy_kcal")
+  proteinG      Float? @map("protein_g")
+  carbsG        Float? @map("carbs_g")
+  fatG          Float? @map("fat_g")
+  fiberG        Float? @map("fiber_g")
+  sugarsG       Float? @map("sugars_g")
+  saturatedFatG Float? @map("saturated_fat_g")
+  cholesterolMg Float? @map("cholesterol_mg")
+  sodiumMg      Float? @map("sodium_mg")
+  potassiumMg   Float? @map("potassium_mg")
+  calciumMg     Float? @map("calcium_mg")
+  ironMg        Float? @map("iron_mg")
+  magnesiumMg   Float? @map("magnesium_mg")
+  zincMg        Float? @map("zinc_mg")
+  vitaminAMcg   Float? @map("vitamin_a_mcg")
+  vitaminCMg    Float? @map("vitamin_c_mg")
+  vitaminDMcg   Float? @map("vitamin_d_mcg")
+  vitaminB12Mcg Float? @map("vitamin_b12_mcg")
+  folateMcg     Float? @map("folate_mcg")
+
+  food Food @relation(fields: [foodId], references: [id], onDelete: Cascade)
+
+  @@map("food_nutrition")
+}
+
+model FoodPortion {
+  id         String  @id @default(uuid(7)) @db.Uuid
+  foodId     String  @map("food_id") @db.Uuid
+  /// Normalized unit: cup, tbsp, medium, slice, piece, bowl…
+  unit       String
+  amount     Float
+  gramWeight Float   @map("gram_weight")
+  label      String
+  isEstimate Boolean @default(false) @map("is_estimate")
+  sortOrder  Int     @default(0) @map("sort_order")
+
+  food Food @relation(fields: [foodId], references: [id], onDelete: Cascade)
+
+  @@index([foodId])
+  @@map("food_portions")
+}
+
+model FoodAllergen {
+  foodId       String           @map("food_id") @db.Uuid
+  allergenCode String           @map("allergen_code")
+  presence     AllergenPresence @default(CONTAINS)
+
+  food Food @relation(fields: [foodId], references: [id], onDelete: Cascade)
+
+  @@id([foodId, allergenCode])
+  @@index([allergenCode])
+  @@map("food_allergens")
 }

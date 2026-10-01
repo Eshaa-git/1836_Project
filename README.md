@@ -21,6 +21,7 @@ npx playwright install chromium        # once, for end-to-end tests
 
 npm run db:start                        # terminal 1 — leave running
 npm run db:deploy                       # terminal 2 — apply migrations to nourish_dev
+npm run db:import-foods                 # food catalog: USDA download (~13 MB, once) + curated dishes
 npm run dev                             # http://localhost:3000
 ```
 

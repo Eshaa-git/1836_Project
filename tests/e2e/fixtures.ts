@@ -40,6 +40,26 @@ export async function completeSetupInDb(email: string) {
   }
 }
 
+/** Records a dietary restriction directly (test setup shortcut). */
+export async function addRestrictionInDb(
+  email: string,
+  r: { kind: "ALLERGY" | "INTOLERANCE" | "AVOID" | "OTHER"; label: string; allergenCode?: string },
+) {
+  const client = new Client({ connectionString: E2E_DATABASE_URL });
+  await client.connect();
+  try {
+    await client.query(
+      `INSERT INTO dietary_restrictions (id, user_id, kind, allergen_code, label, severity)
+       SELECT gen_random_uuid(), id, $2::restriction_kind, $3, $4,
+              CASE WHEN $2 = 'ALLERGY' THEN 'SEVERE'::allergy_severity END
+       FROM users WHERE email = $1`,
+      [email, r.kind, r.allergenCode ?? null, r.label],
+    );
+  } finally {
+    await client.end();
+  }
+}
+
 /** `page` that starts signed in as a brand-new user who has finished setup. */
 export const test = base.extend<{ user: { email: string; name: string } }>({
   user: async ({ page }, provide) => {

@@ -27,6 +27,8 @@ Read `docs/architecture.md` before making structural changes.
 - Prisma 7 `migrate` does not regenerate the client — run `npm run db:generate` after schema changes.
 - Every new user-owned table needs `onDelete: Cascade` to `User` and coverage in the deletion test (docs/privacy.md).
 - Prisma blocks `migrate reset` for AI agents; ask the user to run it if a reset is truly needed.
+- Hand-edited migrations (extensions, partial indexes, CHECKs): `prisma migrate dev --create-only`, edit, then
+  `prisma migrate deploy` — `migrate dev` can hang on an interactive drift prompt afterwards.
 
 ## Commands
 

@@ -118,6 +118,26 @@ server/ai (Claude, tools)  →  calls the same services; the model never writes 
   provider will be added before launch.
 - Data handling and the deletion policy are described in [privacy.md](privacy.md).
 
+### Food data and nutrition engine (Phase 3)
+
+- **Catalog**: USDA FoodData Central SR Legacy 2018-04 (public domain, 7,283 foods after skipping baby foods
+  and a niche regional set), imported by `npm run db:import-foods` into `foods`, `food_nutrition` (per 100 g,
+  NULL = unknown), `food_portions` and `food_allergens`. Re-running refreshes rows in place (ids are stable).
+- **Curated dishes** (`prisma/seed/dishes.ts`): home-style dishes USDA lacks (dosa, idli, sambar, dal,
+  chapati…). Their nutrition is _computed_ from USDA ingredients by the recipe engine — never typed in — and
+  every dish is marked as an estimate with unverified allergens. Gaps we don't fill: paneer, poha (no source).
+- **Engine** (`src/server/domain/nutrition`, pure):
+  - `amounts`: scaling and sums where unknown stays unknown; partial totals are lower bounds ("at least").
+  - `food-units`: quantity + unit → grams via mass, the food's own portions, its density, labelled
+    estimates (household vessels, assumed medium size, water-like drinks), or a clarification request.
+  - `recipe`: totals/per-serving/per-100 g including cooking fat; partial oil absorption is an estimate.
+  - `usda`: maps USDA records (nutrient numbers, free-text portions).
+- **Allergens**: `allergen-tagging` tags foods by name with false-friend exclusions (peanut butter ≠ milk,
+  eggplant ≠ egg); composite categories are `UNVERIFIED`. `food-check` evaluates a food against the user's
+  allergies (danger / can't-confirm warning), intolerances, avoided foods, other rules and diet type.
+- **Search**: pg_trgm word similarity + alias/common-food boosts; user-owned foods are visible only to
+  their owner.
+
 ### Safety layer (Phase 2)
 
 `src/server/domain/safety`, `targets/safety.ts` and `goals/goals.ts` return `SafetyIssue`s: `block` (refused),
@@ -157,7 +177,7 @@ only as a generic message with a reference.
 | 0   | Foundation                     | Tooling, database, shell, testing, CI                                                                                                                                    | ✅     |
 | 1   | Authentication and account     | Register, login, logout, reset, sessions, protected routes, delete account                                                                                               | ✅     |
 | 2   | Profile, restrictions, goals   | Basic + optional profile, routine and meal count, four restriction categories, goals with lifecycle and history, motivation, manual targets (safety-checked)             | ✅     |
-| 3   | Food data and nutrition engine | USDA import, household portions, unit conversion, UNKNOWN-aware totals, estimates, allergen tagging                                                                      |        |
+| 3   | Food data and nutrition engine | USDA import, household portions, unit conversion, UNKNOWN-aware totals, estimates, allergen tagging                                                                      | ✅     |
 | 4   | Food logging                   | Meal slots and statuses, target → eaten → remaining, edit/delete, saved meals, re-log, history search, hydration and sleep logs                                          |        |
 | 5   | Conversational core            | Claude assistant with tools: natural-language logging, corrections, clarifying questions, history questions                                                              |        |
 | 6   | Recommend and cook             | Foods available, meal distribution and timing, within-day adaptation, nutrient gaps, recipes with deterministic nutrition, substitutions, prepared-food storage guidance |        |

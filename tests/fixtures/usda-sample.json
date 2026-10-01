@@ -1,0 +1,261 @@
+[
+  {
+    "fdcId": 170000,
+    "description": "Onions, raw",
+    "foodCategory": {
+      "description": "Vegetables and Vegetable Products"
+    },
+    "foodNutrients": [
+      {
+        "nutrient": {
+          "number": "204",
+          "unitName": "g"
+        },
+        "amount": 0.1
+      },
+      {
+        "nutrient": {
+          "number": "205",
+          "unitName": "g"
+        },
+        "amount": 9.34
+      },
+      {
+        "nutrient": {
+          "number": "208",
+          "unitName": "kcal"
+        },
+        "amount": 40
+      },
+      {
+        "nutrient": {
+          "number": "203",
+          "unitName": "g"
+        },
+        "amount": 1.1
+      },
+      {
+        "nutrient": {
+          "number": "291",
+          "unitName": "g"
+        },
+        "amount": 1.7
+      },
+      {
+        "nutrient": {
+          "number": "328",
+          "unitName": "µg"
+        },
+        "amount": 0
+      }
+    ],
+    "foodPortions": [
+      {
+        "amount": 1,
+        "modifier": "cup, chopped",
+        "gramWeight": 160
+      },
+      {
+        "amount": 1,
+        "modifier": "slice, medium (1/8\" thick)",
+        "gramWeight": 14
+      },
+      {
+        "amount": 1,
+        "modifier": "medium (2-1/2\" dia)",
+        "gramWeight": 110
+      },
+      {
+        "amount": 1,
+        "modifier": "large",
+        "gramWeight": 150
+      },
+      {
+        "amount": 10,
+        "modifier": "rings",
+        "gramWeight": 60
+      },
+      {
+        "amount": 1,
+        "modifier": "tbsp chopped",
+        "gramWeight": 10
+      },
+      {
+        "amount": 1,
+        "modifier": "cup, sliced",
+        "gramWeight": 115
+      },
+      {
+        "amount": 1,
+        "modifier": "slice, thin",
+        "gramWeight": 9
+      },
+      {
+        "amount": 1,
+        "modifier": "small",
+        "gramWeight": 70
+      },
+      {
+        "amount": 1,
+        "modifier": "slice, large (1/4\" thick)",
+        "gramWeight": 38
+      }
+    ]
+  },
+  {
+    "fdcId": 170026,
+    "description": "Potatoes, flesh and skin, raw",
+    "foodCategory": {
+      "description": "Vegetables and Vegetable Products"
+    },
+    "foodNutrients": [
+      {
+        "nutrient": {
+          "number": "204",
+          "unitName": "g"
+        },
+        "amount": 0.09
+      },
+      {
+        "nutrient": {
+          "number": "208",
+          "unitName": "kcal"
+        },
+        "amount": 77
+      },
+      {
+        "nutrient": {
+          "number": "203",
+          "unitName": "g"
+        },
+        "amount": 2.05
+      },
+      {
+        "nutrient": {
+          "number": "291",
+          "unitName": "g"
+        },
+        "amount": 2.1
+      },
+      {
+        "nutrient": {
+          "number": "205",
+          "unitName": "g"
+        },
+        "amount": 17.5
+      },
+      {
+        "nutrient": {
+          "number": "328",
+          "unitName": "µg"
+        },
+        "amount": 0
+      }
+    ],
+    "foodPortions": [
+      {
+        "amount": 1,
+        "modifier": "Potato small (1-3/4\" to 2-1/2\" dia)",
+        "gramWeight": 170
+      },
+      {
+        "amount": 0.5,
+        "modifier": "cup, diced",
+        "gramWeight": 75
+      },
+      {
+        "amount": 1,
+        "modifier": "Potato large (3\" to 4-1/4\" dia)",
+        "gramWeight": 369
+      },
+      {
+        "amount": 1,
+        "modifier": "Potato medium (2-1/4\" to 3-1/4\" dia)",
+        "gramWeight": 213
+      }
+    ]
+  },
+  {
+    "fdcId": 171287,
+    "description": "Egg, whole, raw, fresh",
+    "foodCategory": {
+      "description": "Dairy and Egg Products"
+    },
+    "foodNutrients": [
+      {
+        "nutrient": {
+          "number": "208",
+          "unitName": "kcal"
+        },
+        "amount": 143
+      },
+      {
+        "nutrient": {
+          "number": "203",
+          "unitName": "g"
+        },
+        "amount": 12.6
+      },
+      {
+        "nutrient": {
+          "number": "204",
+          "unitName": "g"
+        },
+        "amount": 9.51
+      },
+      {
+        "nutrient": {
+          "number": "205",
+          "unitName": "g"
+        },
+        "amount": 0.72
+      },
+      {
+        "nutrient": {
+          "number": "328",
+          "unitName": "µg"
+        },
+        "amount": 2
+      },
+      {
+        "nutrient": {
+          "number": "291",
+          "unitName": "g"
+        },
+        "amount": 0
+      }
+    ],
+    "foodPortions": [
+      {
+        "amount": 1,
+        "modifier": "cup (4.86 large eggs)",
+        "gramWeight": 243
+      },
+      {
+        "amount": 1,
+        "modifier": "medium",
+        "gramWeight": 44
+      },
+      {
+        "amount": 1,
+        "modifier": "extra large",
+        "gramWeight": 56
+      },
+      {
+        "amount": 1,
+        "modifier": "small",
+        "gramWeight": 38
+      },
+      {
+        "amount": 1,
+        "modifier": "jumbo",
+        "gramWeight": 63
+      },
+      {
+        "amount": 1,
+        "modifier": "large",
+        "gramWeight": 50
+      }
+    ]
+  }
+]
