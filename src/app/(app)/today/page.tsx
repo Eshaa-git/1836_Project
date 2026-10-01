@@ -1,55 +1,58 @@
 import type { Metadata, Route } from "next";
 import Link from "next/link";
-import {
-  ArrowRight,
-  Bot,
-  Compass,
-  Droplet,
-  Dumbbell,
-  Plus,
-  UtensilsCrossed,
-  type LucideIcon,
-} from "lucide-react";
+import { ArrowRight, Bot, Compass, Dumbbell, History, Plus, type LucideIcon } from "lucide-react";
 import { EmptyState } from "@/components/common/empty-state";
-import { NutrientProgressRow } from "@/components/common/nutrient-progress-row";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { CompletenessNote } from "@/features/log/components/completeness-note";
+import { DayTotals } from "@/features/log/components/day-totals";
+import { HydrationCard } from "@/features/log/components/hydration-card";
+import { SleepCard } from "@/features/log/components/sleep-card";
 import { chooseFocus } from "@/features/today/focus";
+import { formatTime } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import { requireUserContext } from "@/server/auth/session";
+import { localDateIn } from "@/server/domain/dates";
+import type { SlotView } from "@/server/domain/logging/day";
+import { getDayLog } from "@/server/services/food-log";
 import { evaluateActiveGoal } from "@/server/services/goals";
-import { hasFoodPreferences } from "@/server/services/profile";
-import { getCurrentTargets } from "@/server/services/targets";
+import { getProfileView, hasFoodPreferences } from "@/server/services/profile";
+import { getHydrationDay, getSleep } from "@/server/services/wellness-logs";
 import { TodayHeading } from "./today-heading";
 
 export const metadata: Metadata = { title: "Today" };
 
 const quickActions: { label: string; href: Route; icon: LucideIcon }[] = [
-  { label: "Log food", href: "/meals", icon: Plus },
+  { label: "Log food", href: "/meals/add", icon: Plus },
   { label: "Ask coach", href: "/coach", icon: Bot },
-  { label: "Log water", href: "/today", icon: Droplet },
+  { label: "Food history", href: "/meals/history", icon: History },
   { label: "Log workout", href: "/workouts", icon: Dumbbell },
 ];
 
-// Food logging arrives in Phase 4; until then "eaten" is unknown — shown as "—", never 0.
-const nutrients = [
-  { key: "caloriesKcal", name: "Calories", unit: "kcal", tone: "energy" },
-  { key: "proteinG", name: "Protein", unit: "g", tone: "protein" },
-  { key: "carbsG", name: "Carbs", unit: "g", tone: "carbs" },
-  { key: "fatG", name: "Fat", unit: "g", tone: "fat" },
-  { key: "fiberG", name: "Fiber", unit: "g", tone: "fiber" },
-] as const;
+const SLOT_STYLE: Record<SlotView["status"], { label: string; className: string }> = {
+  LOGGED: { label: "Logged", className: "bg-success/15 text-success" },
+  SKIPPED: { label: "Skipped", className: "bg-muted text-muted-foreground" },
+  NOT_LOGGED: { label: "Not logged", className: "bg-warning/15 text-warning" },
+  UPCOMING: { label: "Upcoming", className: "bg-secondary text-secondary-foreground" },
+};
 
 export default async function TodayPage() {
   const ctx = await requireUserContext();
-  const [targets, goal, foodPreferences] = await Promise.all([
-    getCurrentTargets(ctx.userId),
+  const today = localDateIn(ctx.timezone, ctx.now);
+  const [day, goal, foodPreferences, hydration, sleep, profile] = await Promise.all([
+    getDayLog(ctx, today),
     evaluateActiveGoal(ctx),
     hasFoodPreferences(ctx.userId),
+    getHydrationDay(ctx.userId, today),
+    getSleep(ctx.userId, today),
+    getProfileView(ctx.userId, today),
   ]);
+  const hasTargets = Object.values(day.targets).some((v) => v !== null && v !== undefined);
   const focus = chooseFocus({
     goalState: goal?.evaluation.state ?? null,
-    hasTargets: Boolean(targets),
+    hasTargets,
     hasRestrictionsInfo: foodPreferences,
+    unloggedSlot: day.summary.unloggedSlots[0] ?? null,
   });
 
   return (
@@ -90,11 +93,13 @@ export default async function TodayPage() {
       <div className="grid gap-4 md:grid-cols-2">
         <Card className="rounded-3xl">
           <CardHeader>
-            <CardTitle>Nutrition</CardTitle>
+            <CardTitle>
+              <h2>Nutrition</h2>
+            </CardTitle>
             <CardDescription>Target → eaten → remaining</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {!targets && (
+            {!hasTargets && (
               <p className="rounded-xl bg-muted px-3 py-2 text-sm text-muted-foreground">
                 <Link href="/profile/targets" className="text-primary underline-offset-4 hover:underline">
                   Set your daily targets
@@ -102,67 +107,87 @@ export default async function TodayPage() {
                 to see what remains each day.
               </p>
             )}
-            {nutrients.map((n) => (
-              <NutrientProgressRow
-                key={n.name}
-                name={n.name}
-                unit={n.unit}
-                tone={n.tone}
-                consumed={null}
-                target={targets?.[n.key] ?? null}
-                hideHint={!targets}
-              />
-            ))}
+            <CompletenessNote
+              completeness={day.summary.completeness}
+              date={today}
+              markedComplete={day.markedComplete}
+              hasEntries={day.entries.length > 0}
+            />
+            <DayTotals day={day} />
           </CardContent>
         </Card>
 
         <Card className="rounded-3xl">
-          <CardHeader>
-            <CardTitle>Today&apos;s meals</CardTitle>
-            <CardDescription>Logged, skipped, not logged yet, or upcoming</CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>
+              <h2>Today&apos;s meals</h2>
+            </CardTitle>
+            <Link href="/meals" className="text-sm text-primary underline-offset-4 hover:underline">
+              Open log
+            </Link>
           </CardHeader>
           <CardContent>
-            <EmptyState
-              size="sm"
-              icon={UtensilsCrossed}
-              title="No meals logged yet"
-              description="Tell the coach what you ate — “two eggs and a medium apple” is enough."
-            />
+            <ul className="divide-y">
+              {day.summary.slots.map((slot) => {
+                const style = SLOT_STYLE[slot.status];
+                return (
+                  <li key={slot.key} className="flex items-center justify-between gap-3 py-2.5">
+                    <span>
+                      <span className="font-medium">{slot.label}</span>
+                      {slot.time && (
+                        <span className="ml-2 text-sm text-muted-foreground">{formatTime(slot.time)}</span>
+                      )}
+                    </span>
+                    <span className="flex items-center gap-2">
+                      <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium", style.className)}>
+                        {style.label}
+                      </span>
+                      {(slot.status === "NOT_LOGGED" || slot.status === "UPCOMING") && (
+                        <Link
+                          href={`/meals/add?slot=${encodeURIComponent(slot.key)}` as Route}
+                          className="text-sm text-primary underline-offset-4 hover:underline"
+                          aria-label={`Log ${slot.label}`}
+                        >
+                          Log
+                        </Link>
+                      )}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
           </CardContent>
         </Card>
 
         <Card className="rounded-3xl">
           <CardHeader>
-            <CardTitle>Hydration &amp; sleep</CardTitle>
+            <CardTitle>
+              <h2>Hydration &amp; sleep</h2>
+            </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <NutrientProgressRow
-              name="Water"
-              unit="ml"
-              tone="water"
-              consumed={null}
-              target={targets?.waterMl ?? null}
-            />
-            <NutrientProgressRow
-              name="Sleep"
-              unit="h"
-              tone="sleep"
-              consumed={null}
-              target={targets?.sleepHours ?? null}
+          <CardContent className="space-y-6">
+            <HydrationCard date={today} day={hydration} targetMl={day.targets.waterMl ?? null} />
+            <SleepCard
+              date={today}
+              sleep={sleep}
+              targetHours={day.targets.sleepHours ?? null}
+              defaults={{ bedtime: profile.bedTime ?? "23:00", wakeTime: profile.wakeTime ?? "07:00" }}
             />
           </CardContent>
         </Card>
 
         <Card className="rounded-3xl">
           <CardHeader>
-            <CardTitle>Workout</CardTitle>
+            <CardTitle>
+              <h2>Workout</h2>
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <EmptyState
               size="sm"
               icon={Dumbbell}
               title="Nothing logged today"
-              description="Just mark a workout done, or add sets and reps if you want to track progress."
+              description="Workout tracking arrives soon — walks will count too."
             />
           </CardContent>
         </Card>

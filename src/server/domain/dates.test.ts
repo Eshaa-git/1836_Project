@@ -8,6 +8,9 @@ import {
   isTimeOfDay,
   isValidTimezone,
   localDateIn,
+  localMinutesIn,
+  sleepDurationMin,
+  zonedTimeToUtc,
   toDateOnly,
 } from "./dates";
 
@@ -50,5 +53,27 @@ describe("dates", () => {
     expect(isTimeOfDay("07:30")).toBe(true);
     expect(isTimeOfDay("24:00")).toBe(false);
     expect(isTimeOfDay("7:30")).toBe(false);
+  });
+
+  it("gives local minutes since midnight", () => {
+    expect(localMinutesIn("Asia/Kolkata", new Date("2026-10-01T02:30:00Z"))).toBe(8 * 60);
+  });
+
+  it("converts a local wall-clock time to UTC, including across DST", () => {
+    expect(zonedTimeToUtc("2026-10-01", "08:00", "Asia/Kolkata").toISOString()).toBe(
+      "2026-10-01T02:30:00.000Z",
+    );
+    expect(zonedTimeToUtc("2026-07-01", "08:00", "America/New_York").toISOString()).toBe(
+      "2026-07-01T12:00:00.000Z",
+    );
+    expect(zonedTimeToUtc("2026-12-01", "08:00", "America/New_York").toISOString()).toBe(
+      "2026-12-01T13:00:00.000Z",
+    );
+  });
+
+  it("computes sleep across midnight", () => {
+    expect(sleepDurationMin("23:30", "07:00")).toBe(450);
+    expect(sleepDurationMin("01:00", "08:30")).toBe(450);
+    expect(sleepDurationMin("14:00", "15:30")).toBe(90);
   });
 });

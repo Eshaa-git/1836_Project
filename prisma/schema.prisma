@@ -37,6 +37,12 @@ model User {
   goalMilestones      GoalMilestone[]
   dailyTargets        DailyTarget[]
   customFoods         Food[]
+  foodLogEntries      FoodLogEntry[]
+  mealSlotMarks       MealSlotMark[]
+  dayLogs             DayLog[]
+  savedMeals          SavedMeal[]
+  hydrationLogs       HydrationLog[]
+  sleepLogs           SleepLog[]
 
   @@map("users")
 }
@@ -466,10 +472,12 @@ model Food {
   createdAt          DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt          DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  user      User?          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  nutrition FoodNutrition?
-  portions  FoodPortion[]
-  allergens FoodAllergen[]
+  user           User?           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nutrition      FoodNutrition?
+  portions       FoodPortion[]
+  allergens      FoodAllergen[]
+  foodLogEntries FoodLogEntry[]
+  savedMealItems SavedMealItem[]
 
   @@unique([source, sourceId])
   @@index([userId])
@@ -530,4 +538,171 @@ model FoodAllergen {
   @@id([foodId, allergenCode])
   @@index([allergenCode])
   @@map("food_allergens")
+}
+
+// ─── Food logging ────────────────────────────────────────────────────────────
+// Only logged entries count as eaten. Each entry snapshots the nutrients at the
+// time of logging (NULL = unknown), so catalog updates never rewrite history.
+
+enum LogSource {
+  MANUAL
+  SAVED_MEAL
+  COPY
+  CHAT
+
+  @@map("log_source")
+}
+
+model FoodLogEntry {
+  id            String    @id @default(uuid(7)) @db.Uuid
+  userId        String    @map("user_id") @db.Uuid
+  /// Calendar day in the user's timezone.
+  localDate     DateTime  @map("local_date") @db.Date
+  /// When it was eaten.
+  eatenAt       DateTime  @map("eaten_at") @db.Timestamptz(3)
+  /// Meal slot label, e.g. "Breakfast", "Snack 2".
+  mealSlot      String    @map("meal_slot")
+  foodId        String?   @map("food_id") @db.Uuid
+  foodName      String    @map("food_name")
+  quantity      Float
+  /// Normalized unit ("g", "cup", "piece") or "portion" when a food portion was chosen.
+  unit          String
+  portionLabel  String?   @map("portion_label")
+  grams         Float
+  isEstimate    Boolean   @default(false) @map("is_estimate")
+  estimateNote  String?   @map("estimate_note")
+  source        LogSource @default(MANUAL)
+  note          String?
+  energyKcal    Float?    @map("energy_kcal")
+  proteinG      Float?    @map("protein_g")
+  carbsG        Float?    @map("carbs_g")
+  fatG          Float?    @map("fat_g")
+  fiberG        Float?    @map("fiber_g")
+  sugarsG       Float?    @map("sugars_g")
+  saturatedFatG Float?    @map("saturated_fat_g")
+  cholesterolMg Float?    @map("cholesterol_mg")
+  sodiumMg      Float?    @map("sodium_mg")
+  potassiumMg   Float?    @map("potassium_mg")
+  calciumMg     Float?    @map("calcium_mg")
+  ironMg        Float?    @map("iron_mg")
+  magnesiumMg   Float?    @map("magnesium_mg")
+  zincMg        Float?    @map("zinc_mg")
+  vitaminAMcg   Float?    @map("vitamin_a_mcg")
+  vitaminCMg    Float?    @map("vitamin_c_mg")
+  vitaminDMcg   Float?    @map("vitamin_d_mcg")
+  vitaminB12Mcg Float?    @map("vitamin_b12_mcg")
+  folateMcg     Float?    @map("folate_mcg")
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  food Food? @relation(fields: [foodId], references: [id], onDelete: SetNull)
+
+  @@index([userId, localDate])
+  @@index([userId, eatenAt])
+  @@map("food_log_entries")
+}
+
+enum MealMark {
+  SKIPPED
+
+  @@map("meal_mark")
+}
+
+/// Explicit "I skipped this meal". Absence of entries alone never means skipped.
+model MealSlotMark {
+  userId    String   @map("user_id") @db.Uuid
+  localDate DateTime @map("local_date") @db.Date
+  mealSlot  String   @map("meal_slot")
+  mark      MealMark
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, localDate, mealSlot])
+  @@map("meal_slot_marks")
+}
+
+/// Per-day flags. "Complete" is the user saying they've logged everything.
+model DayLog {
+  userId      String    @map("user_id") @db.Uuid
+  localDate   DateTime  @map("local_date") @db.Date
+  completedAt DateTime? @map("completed_at") @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, localDate])
+  @@map("day_logs")
+}
+
+model SavedMeal {
+  id          String    @id @default(uuid(7)) @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  name        String
+  defaultSlot String?   @map("default_slot")
+  lastUsedAt  DateTime? @map("last_used_at") @db.Timestamptz(3)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user  User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items SavedMealItem[]
+
+  @@index([userId])
+  @@map("saved_meals")
+}
+
+model SavedMealItem {
+  id           String  @id @default(uuid(7)) @db.Uuid
+  savedMealId  String  @map("saved_meal_id") @db.Uuid
+  foodId       String? @map("food_id") @db.Uuid
+  foodName     String  @map("food_name")
+  quantity     Float
+  unit         String
+  portionLabel String? @map("portion_label")
+  grams        Float
+  isEstimate   Boolean @default(false) @map("is_estimate")
+  sortOrder    Int     @default(0) @map("sort_order")
+
+  savedMeal SavedMeal @relation(fields: [savedMealId], references: [id], onDelete: Cascade)
+  food      Food?     @relation(fields: [foodId], references: [id], onDelete: SetNull)
+
+  @@index([savedMealId])
+  @@map("saved_meal_items")
+}
+
+// ─── Hydration and sleep ─────────────────────────────────────────────────────
+
+model HydrationLog {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  localDate DateTime @map("local_date") @db.Date
+  loggedAt  DateTime @map("logged_at") @db.Timestamptz(3)
+  amountMl  Int      @map("amount_ml")
+  drink     String   @default("Water")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, localDate])
+  @@map("hydration_logs")
+}
+
+/// Main sleep that ended on `localDate` (the morning you woke up).
+model SleepLog {
+  id          String    @id @default(uuid(7)) @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  localDate   DateTime  @map("local_date") @db.Date
+  bedtimeAt   DateTime? @map("bedtime_at") @db.Timestamptz(3)
+  wokeAt      DateTime? @map("woke_at") @db.Timestamptz(3)
+  durationMin Int       @map("duration_min")
+  quality     Int?      @db.SmallInt
+  note        String?
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, localDate])
+  @@map("sleep_logs")
 }

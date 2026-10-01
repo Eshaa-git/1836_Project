@@ -3,6 +3,7 @@ import { addRestrictionInDb, expect, test } from "./fixtures";
 test("search finds a curated dish and the calculator scales nutrition", async ({ page, user }) => {
   void user;
   await page.goto("/meals");
+  await page.getByRole("link", { name: "Look up a food" }).click();
   await page.getByLabel("Search foods").fill("dosai");
   await page.getByRole("button", { name: "Search" }).click();
 

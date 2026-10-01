@@ -24,7 +24,19 @@ const GENERIC_UNITS = [
   ["glass", "glasses (~250 ml)"],
 ] as const;
 
+/** What the calculator currently describes, in the shape logging actions accept. */
+export type PortionSelection = {
+  quantityText: string;
+  amount: { kind: "portion"; portionIndex: number } | { kind: "unit"; unit: string };
+  /** False while the amount is invalid or needs clarification. */
+  ready: boolean;
+};
+
 type Props = {
+  /** Start from an existing amount (editing an entry). */
+  initial?: { quantityText: string; choice: string };
+  /** Renders below the calculator, e.g. an "Add to Breakfast" button. */
+  renderAction?: (selection: PortionSelection) => React.ReactNode;
   food: {
     name: string;
     category: string | null;
@@ -38,10 +50,10 @@ type Props = {
  * "How much did you have?" — converts a quantity + unit to grams with the
  * deterministic unit engine and shows the nutrients for that amount.
  */
-export function PortionCalculator({ food }: Props) {
-  const [quantityText, setQuantityText] = useState("1");
+export function PortionCalculator({ food, initial, renderAction }: Props) {
+  const [quantityText, setQuantityText] = useState(initial?.quantityText ?? "1");
   // "p:<index>" = one of the food's own portions, "u:<unit>" = a generic unit.
-  const [choice, setChoice] = useState(food.portions.length ? "p:0" : "u:g");
+  const [choice, setChoice] = useState(initial?.choice ?? (food.portions.length ? "p:0" : "u:g"));
   const quantity = parseQuantity(quantityText);
 
   const result = useMemo(() => {
@@ -59,6 +71,13 @@ export function PortionCalculator({ food }: Props) {
   }, [quantity, choice, food]);
 
   const isEstimate = Boolean(result?.ok && (result.isEstimate || food.isEstimate));
+  const selection: PortionSelection = {
+    quantityText,
+    amount: choice.startsWith("p:")
+      ? { kind: "portion", portionIndex: Number(choice.slice(2)) }
+      : { kind: "unit", unit: choice.slice(2) },
+    ready: Boolean(result?.ok),
+  };
 
   return (
     <div className="space-y-5">
@@ -146,6 +165,7 @@ export function PortionCalculator({ food }: Props) {
           />
         </>
       )}
+      {renderAction?.(selection)}
     </div>
   );
 }

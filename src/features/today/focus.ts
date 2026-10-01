@@ -11,6 +11,8 @@ export function chooseFocus(input: {
   goalState: GoalEvaluation["state"] | null;
   hasTargets: boolean;
   hasRestrictionsInfo: boolean;
+  /** A meal whose time has passed with nothing logged and no "skipped" mark. */
+  unloggedSlot?: string | null;
 }): Focus {
   if (input.goalState === "achieved") {
     return {
@@ -26,6 +28,14 @@ export function chooseFocus(input: {
       body: "Your progress still counts. We can suggest a comfortable new date — nothing gets stricter.",
       href: "/profile/goal",
       cta: "Review timeline",
+    };
+  }
+  if (input.unloggedSlot) {
+    return {
+      title: `Did you have ${input.unloggedSlot.toLowerCase()}?`,
+      body: "Log it, or mark it skipped — that way today's totals stay accurate.",
+      href: "/meals",
+      cta: "Update meals",
     };
   }
   if (!input.hasTargets) {

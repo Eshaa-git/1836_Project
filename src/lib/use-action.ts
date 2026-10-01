@@ -16,7 +16,7 @@ export function useAction<I, T>(action: (input: I) => Promise<ActionResult<T>>) 
   const [safetyIssues, setSafetyIssues] = useState<SafetyIssueView[]>([]);
 
   const run = useCallback(
-    async (input: I): Promise<{ ok: true; value: T } | { ok: false }> => {
+    async (input: I): Promise<{ ok: true; value: T } | { ok: false; message: string }> => {
       setPending(true);
       setFormError(null);
       try {
@@ -30,10 +30,12 @@ export function useAction<I, T>(action: (input: I) => Promise<ActionResult<T>>) 
         setSafetyIssues(result.error.safetyIssues ?? []);
         // Safety issues are shown by <SafetyReview>; other errors get a banner.
         if (!result.error.safetyIssues?.length) setFormError(result.error.message);
-        return { ok: false };
+        const firstField = Object.values(result.error.fieldErrors ?? {})[0]?.[0];
+        return { ok: false, message: firstField ?? result.error.message };
       } catch {
-        setFormError("We couldn't reach the server. Check your connection and try again.");
-        return { ok: false };
+        const message = "We couldn't reach the server. Check your connection and try again.";
+        setFormError(message);
+        return { ok: false, message };
       } finally {
         setPending(false);
       }

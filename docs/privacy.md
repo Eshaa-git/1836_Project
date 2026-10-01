@@ -3,7 +3,7 @@
 Nourish stores personal and health-related information. This document is the application's data policy
 and is enforced by the schema and tests. Update it whenever a new kind of personal data is stored.
 
-## What we store (as of Phase 2)
+## What we store (as of Phase 4)
 
 | Data                                                                              | Where                                     | Why                                                                                                   |
 | --------------------------------------------------------------------------------- | ----------------------------------------- | ----------------------------------------------------------------------------------------------------- |
@@ -19,6 +19,10 @@ and is enforced by the schema and tests. Update it whenever a new kind of person
 | Body measurements                                                                 | `body_measurements`                       | Progress toward goals; days without an entry are unknown, never inferred                              |
 | Goals, goal change history, milestones                                            | `goals`, `goal_events`, `goal_milestones` | Showing start → current → target and keeping achievements                                             |
 | Daily targets and their history                                                   | `daily_targets`                           | Target → eaten → remaining; acknowledged safety warnings are recorded                                 |
+| Food log entries (food, amount, time, meal, nutrient snapshot)                    | `food_log_entries`                        | Target → eaten → remaining; history search                                                            |
+| Skipped-meal marks and "logged everything" flags                                  | `meal_slot_marks`, `day_logs`             | Telling skipped meals apart from unlogged ones                                                        |
+| Saved meals                                                                       | `saved_meals`, `saved_meal_items`         | One-tap re-logging                                                                                    |
+| Water and sleep entries                                                           | `hydration_logs`, `sleep_logs`            | Hydration and sleep tracking                                                                          |
 
 ## Account deletion
 

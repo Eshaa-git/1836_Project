@@ -1,47 +1,71 @@
 import type { Metadata } from "next";
-import { Search } from "lucide-react";
+import Link from "next/link";
+import { History, Search } from "lucide-react";
 import { PageHeader } from "@/components/common/page-header";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { getNavItem } from "@/config/navigation";
+import { CompletenessNote } from "@/features/log/components/completeness-note";
+import { DayNav } from "@/features/log/components/day-nav";
+import { DayTotals } from "@/features/log/components/day-totals";
+import { MealSlotCard } from "@/features/log/components/meal-slot-card";
+import { requireUserContext } from "@/server/auth/session";
+import { addDays, isDateOnly, localDateIn } from "@/server/domain/dates";
+import { getDayLog } from "@/server/services/food-log";
 
 export const metadata: Metadata = { title: "Meals" };
 
-export default function MealsPage() {
+export default async function MealsPage({ searchParams }: PageProps<"/meals">) {
+  const { date: rawDate } = await searchParams;
+  const ctx = await requireUserContext();
+  const today = localDateIn(ctx.timezone, ctx.now);
+  const date = typeof rawDate === "string" && isDateOnly(rawDate) && rawDate <= today ? rawDate : today;
+  const day = await getDayLog(ctx, date);
   const item = getNavItem("meals");
+
   return (
     <div className="space-y-6">
-      <PageHeader title={item.label} description={item.description} />
-      <Card className="rounded-3xl">
-        <CardHeader>
-          <CardTitle>
-            <h2>Look up a food</h2>
-          </CardTitle>
-          <CardDescription>
-            See nutrition for any amount, and whether it fits your allergies and diet.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form action="/meals/foods" role="search" className="flex gap-2">
-            <Input
-              name="q"
-              aria-label="Search foods"
-              placeholder="e.g. dosa, egg, chicken breast"
-              className="h-11 text-base sm:h-10 sm:text-sm"
-            />
-            <Button type="submit" size="lg" className="h-11 sm:h-10">
-              <Search aria-hidden /> Search
+      <PageHeader
+        title={item.label}
+        description={item.description}
+        actions={
+          <>
+            <Button asChild variant="outline">
+              <Link href="/meals/foods">
+                <Search aria-hidden /> Look up a food
+              </Link>
             </Button>
-          </form>
+            <Button asChild variant="outline">
+              <Link href="/meals/history">
+                <History aria-hidden /> History
+              </Link>
+            </Button>
+          </>
+        }
+      />
+      <DayNav date={date} today={today} basePath="/meals" />
+
+      <Card className="rounded-3xl">
+        <CardContent className="space-y-4 pt-2">
+          <CompletenessNote
+            completeness={day.summary.completeness}
+            date={date}
+            markedComplete={day.markedComplete}
+            hasEntries={day.entries.length > 0}
+          />
+          <DayTotals day={day} />
         </CardContent>
       </Card>
-      <div className="flex flex-wrap gap-2" aria-label="Coming soon">
-        {["Log by meal", "Skipped vs not logged", "Saved meals", "Search history"].map((f) => (
-          <Badge key={f} variant="secondary" className="px-3 py-1">
-            {f} — coming next
-          </Badge>
+
+      <div className="space-y-3">
+        {day.summary.slots.map((slot) => (
+          <MealSlotCard
+            key={slot.key}
+            slot={slot}
+            entries={day.entries.filter((e) => slot.itemIds.includes(e.id))}
+            date={date}
+            previousDate={addDays(date, -1)}
+          />
         ))}
       </div>
     </div>

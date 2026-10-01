@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { describeNutrientProgress } from "./nutrient-progress";
+import { describeNutrientProgress, describeRemaining } from "./nutrient-progress";
 
 describe("describeNutrientProgress", () => {
   it("formats consumed vs target", () => {
@@ -35,5 +35,23 @@ describe("describeNutrientProgress", () => {
     const over = describeNutrientProgress(2400, 2000, "kcal");
     expect(over.state).toBe("over");
     expect(over.percent).toBe(100);
+  });
+});
+
+describe("describeRemaining", () => {
+  it("describes exact, upper-bound, over and unknown remaining", () => {
+    expect(describeRemaining({ status: "exact", value: 320, over: false }, "kcal")).toBe("320 kcal left");
+    expect(describeRemaining({ status: "at_most", value: 320, over: false }, "kcal")).toBe(
+      "At most 320 kcal left",
+    );
+    expect(describeRemaining({ status: "exact", value: 0, over: true }, "kcal", 120)).toBe(
+      "120 kcal over target",
+    );
+    expect(describeRemaining({ status: "unknown" }, "kcal")).toMatch(/Can't tell/);
+    expect(describeRemaining({ status: "no_target" }, "kcal")).toBeNull();
+  });
+
+  it("marks eaten amounts that are only a minimum", () => {
+    expect(describeNutrientProgress(420, 2000, "kcal", 0.1, true).label).toBe("≥ 420 / 2,000 kcal");
   });
 });

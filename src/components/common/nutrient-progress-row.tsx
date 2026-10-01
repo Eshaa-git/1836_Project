@@ -1,4 +1,9 @@
-import { describeNutrientProgress, type NutrientProgressState } from "@/lib/nutrient-progress";
+import {
+  describeNutrientProgress,
+  describeRemaining,
+  type NutrientProgressState,
+  type RemainingDisplay,
+} from "@/lib/nutrient-progress";
 import { cn } from "@/lib/utils";
 
 type Tone = "energy" | "protein" | "carbs" | "fat" | "fiber" | "water" | "sleep";
@@ -29,12 +34,26 @@ type Props = {
   tone: Tone;
   /** Hide the visible status line (the parent explains it once); screen readers still get it. */
   hideHint?: boolean;
+  /** Eaten value is a minimum because some logged foods lack this nutrient. */
+  consumedIsLowerBound?: boolean;
+  /** What's left, from the day summary. Replaces the generic hint when given. */
+  remaining?: RemainingDisplay;
 };
 
 /** One labelled bar, e.g. "Protein 120 / 150 g". Unknown values render as "—", never 0. */
-export function NutrientProgressRow({ name, consumed, target, unit, tone, hideHint }: Props) {
-  const p = describeNutrientProgress(consumed, target, unit);
-  const hint = stateHint[p.state];
+export function NutrientProgressRow({
+  name,
+  consumed,
+  target,
+  unit,
+  tone,
+  hideHint,
+  consumedIsLowerBound,
+  remaining,
+}: Props) {
+  const p = describeNutrientProgress(consumed, target, unit, 0.1, consumedIsLowerBound);
+  const overBy = consumed !== null && target !== null ? consumed - target : null;
+  const hint = (remaining && describeRemaining(remaining, unit, overBy)) ?? stateHint[p.state];
   return (
     <div className="space-y-1.5">
       <div className="flex items-baseline justify-between gap-3 text-sm">

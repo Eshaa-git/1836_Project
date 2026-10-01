@@ -57,7 +57,7 @@ test("a new user completes onboarding and sees their targets on Today", async ({
   await expect(page).toHaveURL(/\/today$/);
   await expect(page.getByRole("progressbar", { name: "Calories" })).toHaveAttribute(
     "aria-valuetext",
-    /— \/ 1,100 kcal, not logged yet/,
+    /— \/ 1,100 kcal/,
   );
 
   // The profile shows the four restriction categories separately.

@@ -138,6 +138,22 @@ server/ai (Claude, tools)  →  calls the same services; the model never writes 
 - **Search**: pg_trgm word similarity + alias/common-food boosts; user-owned foods are visible only to
   their owner.
 
+### Food logging (Phase 4)
+
+- `food_log_entries` hold only food that was **eaten**, with a nutrient snapshot taken at logging time (NULL =
+  unknown) so catalog refreshes never rewrite history. Amounts are resolved on the server by the same unit
+  engine the UI uses; ambiguous amounts are refused with options.
+- `domain/logging/day.ts` builds each day: meal slots from the user's meal times (default three), each
+  **LOGGED / SKIPPED / NOT_LOGGED / UPCOMING** (90-minute grace after the meal time). "Skipped" exists only when
+  the user says so (`meal_slot_marks`); an empty meal is never assumed skipped or zero.
+- Day completeness: COMPLETE (user confirmed, or every meal logged/skipped), IN_PROGRESS, PARTIAL (some meals
+  not logged), NONE. Remaining is `exact`, `at_most` (unlogged meals or unknown nutrient values), `unknown`
+  (nothing logged) or `no_target`. Targets are history-aware (the set that applied on that day).
+- Saved meals store foods and grams; re-logging recalculates nutrients from current data and keeps estimate
+  flags. Meals can be copied from another day. History search covers food name, date range and meal.
+- Water (`hydration_logs`) and sleep (`sleep_logs`, one per morning, bedtime before midnight handled) follow
+  the same rule: no entry = unknown.
+
 ### Safety layer (Phase 2)
 
 `src/server/domain/safety`, `targets/safety.ts` and `goals/goals.ts` return `SafetyIssue`s: `block` (refused),
@@ -178,7 +194,7 @@ only as a generic message with a reference.
 | 1   | Authentication and account     | Register, login, logout, reset, sessions, protected routes, delete account                                                                                               | ✅     |
 | 2   | Profile, restrictions, goals   | Basic + optional profile, routine and meal count, four restriction categories, goals with lifecycle and history, motivation, manual targets (safety-checked)             | ✅     |
 | 3   | Food data and nutrition engine | USDA import, household portions, unit conversion, UNKNOWN-aware totals, estimates, allergen tagging                                                                      | ✅     |
-| 4   | Food logging                   | Meal slots and statuses, target → eaten → remaining, edit/delete, saved meals, re-log, history search, hydration and sleep logs                                          |        |
+| 4   | Food logging                   | Meal slots and statuses, target → eaten → remaining, edit/delete, saved meals, re-log, history search, hydration and sleep logs                                          | ✅     |
 | 5   | Conversational core            | Claude assistant with tools: natural-language logging, corrections, clarifying questions, history questions                                                              |        |
 | 6   | Recommend and cook             | Foods available, meal distribution and timing, within-day adaptation, nutrient gaps, recipes with deterministic nutrition, substitutions, prepared-food storage guidance |        |
 | 7   | Workouts                       | Quick "done", detailed strength/cardio, previous vs today, personal bests, safe progression checks                                                                       |        |
