@@ -28,3 +28,6 @@ export function createContext(overrides: Partial<Omit<RequestContext, "logger">>
     logger: rootLogger.child({ requestId, userId }),
   };
 }
+
+/** Context for code that requires a signed-in user. */
+export type UserContext = RequestContext & { userId: string };

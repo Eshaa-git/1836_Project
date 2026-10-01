@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { defineAction } from "./action";
-import { createContext } from "./context";
+import { createContext, type UserContext } from "./context";
 import { NotFoundError, SafetyError, UnauthorizedError } from "./errors";
 
 const schema = z.object({ servings: z.number().int().positive() });
-const context = () => createContext({ requestId: "req-1234567890" });
+const context = () => createContext({ requestId: "req-1234567890", userId: "u1" }) as UserContext;
 
 describe("defineAction", () => {
   it("passes validated input to the handler and wraps the value", async () => {

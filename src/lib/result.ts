@@ -14,6 +14,14 @@ export type ActionError = {
   code: string;
   message: string;
   fieldErrors?: Record<string, string[]>;
+  /** Present on SAFETY errors: the issues the user must see (and possibly acknowledge). */
+  safetyIssues?: {
+    code: string;
+    severity: "block" | "warn" | "info";
+    field?: string;
+    message: string;
+    suggestion?: { field: string; value: string | number; label: string };
+  }[];
 };
 
 export type ActionResult<T> = Result<T, ActionError>;

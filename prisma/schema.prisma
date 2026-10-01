@@ -26,9 +26,16 @@ model User {
   createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  sessions  Session[]
-  accounts  Account[]
-  auditLogs AuditLog[]
+  sessions            Session[]
+  accounts            Account[]
+  auditLogs           AuditLog[]
+  profile             UserProfile?
+  bodyMeasurements    BodyMeasurement[]
+  dietaryRestrictions DietaryRestriction[]
+  goals               Goal[]
+  goalEvents          GoalEvent[]
+  goalMilestones      GoalMilestone[]
+  dailyTargets        DailyTarget[]
 
   @@map("users")
 }
@@ -122,4 +129,288 @@ model AuditLog {
   @@index([userId, createdAt])
   @@index([action, createdAt])
   @@map("audit_logs")
+}
+
+// ─── Profile ─────────────────────────────────────────────────────────────────
+// Everything beyond the basics (birth date, height, units, timezone) is optional:
+// users start simple and add detail when they want more personalised guidance.
+
+enum Sex {
+  FEMALE
+  MALE
+  INTERSEX
+  PREFER_NOT_TO_SAY
+
+  @@map("sex")
+}
+
+enum MeasurementSystem {
+  METRIC
+  IMPERIAL
+
+  @@map("measurement_system")
+}
+
+enum ActivityLevel {
+  SEDENTARY
+  LIGHT
+  MODERATE
+  ACTIVE
+  VERY_ACTIVE
+
+  @@map("activity_level")
+}
+
+enum DietType {
+  OMNIVORE
+  VEGETARIAN
+  EGGETARIAN
+  VEGAN
+  PESCATARIAN
+  OTHER
+
+  @@map("diet_type")
+}
+
+model UserProfile {
+  userId            String            @id @map("user_id") @db.Uuid
+  birthDate         DateTime?         @map("birth_date") @db.Date
+  sex               Sex?
+  heightCm          Decimal?          @map("height_cm") @db.Decimal(5, 1)
+  measurementSystem MeasurementSystem @default(METRIC) @map("measurement_system")
+  timezone          String            @default("UTC")
+
+  // Food preferences (restrictions live in dietary_restrictions)
+  dietType       DietType? @map("diet_type")
+  dietTypeOther  String?   @map("diet_type_other")
+  cuisines       String[]  @default([])
+  preferredFoods String[]  @default([]) @map("preferred_foods")
+
+  // Routine (times are local "HH:MM" strings in the user's timezone)
+  activityLevel      ActivityLevel? @map("activity_level")
+  mealsPerDay        Int?           @map("meals_per_day") @db.SmallInt
+  wakeTime           String?        @map("wake_time")
+  bedTime            String?        @map("bed_time")
+  workoutTime        String?        @map("workout_time")
+  workoutDurationMin Int?           @map("workout_duration_min") @db.SmallInt
+  workoutDays        String[]       @default([]) @map("workout_days")
+  workSchedule       String?        @map("work_schedule")
+  /// Preferred meal times: [{ "label": "Breakfast", "time": "07:30" }, …]
+  mealTimes          Json?          @map("meal_times")
+
+  // Motivation
+  motivationWhy String? @map("motivation_why")
+  roleModel     String? @map("role_model")
+
+  onboardingCompletedAt DateTime? @map("onboarding_completed_at") @db.Timestamptz(3)
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt             DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_profiles")
+}
+
+// Append-only body measurements. Nothing is inferred for days without an entry.
+model BodyMeasurement {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  measuredAt DateTime @map("measured_at") @db.Timestamptz(3)
+  localDate  DateTime @map("local_date") @db.Date
+  weightKg   Decimal? @map("weight_kg") @db.Decimal(5, 2)
+  bodyFatPct Decimal? @map("body_fat_pct") @db.Decimal(4, 1)
+  waistCm    Decimal? @map("waist_cm") @db.Decimal(5, 1)
+  hipCm      Decimal? @map("hip_cm") @db.Decimal(5, 1)
+  chestCm    Decimal? @map("chest_cm") @db.Decimal(5, 1)
+  armCm      Decimal? @map("arm_cm") @db.Decimal(5, 1)
+  thighCm    Decimal? @map("thigh_cm") @db.Decimal(5, 1)
+  note       String?
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, measuredAt])
+  @@map("body_measurements")
+}
+
+// ─── Dietary restrictions ────────────────────────────────────────────────────
+// Four categories that are never treated as equivalent. ALLERGY is the highest
+// priority and is enforced deterministically before any recommendation.
+
+enum RestrictionKind {
+  ALLERGY
+  INTOLERANCE
+  AVOID
+  OTHER
+
+  @@map("restriction_kind")
+}
+
+enum AllergySeverity {
+  MILD
+  MODERATE
+  SEVERE
+  UNKNOWN
+
+  @@map("allergy_severity")
+}
+
+model DietaryRestriction {
+  id           String           @id @default(uuid(7)) @db.Uuid
+  userId       String           @map("user_id") @db.Uuid
+  kind         RestrictionKind
+  /// Code from the allergen taxonomy (src/server/domain/dietary/allergens.ts) when one applies.
+  allergenCode String?          @map("allergen_code")
+  /// What the user called it, e.g. "cashews", "lactose", "pork", "halal only".
+  label        String
+  severity     AllergySeverity? // allergies only
+  note         String?
+  createdAt    DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, kind, label])
+  @@index([userId, kind])
+  @@map("dietary_restrictions")
+}
+
+// ─── Goals ───────────────────────────────────────────────────────────────────
+// Goals are edited in place but every change is recorded as a GoalEvent, and a
+// goal is never deleted: replaced/achieved goals stay in history.
+
+enum GoalType {
+  FAT_LOSS
+  WEIGHT_LOSS
+  MAINTENANCE
+  MUSCLE_GAIN
+  STRENGTH
+  GENERAL_FITNESS
+
+  @@map("goal_type")
+}
+
+enum GoalStatus {
+  ACTIVE
+  ACHIEVED
+  REPLACED
+  ARCHIVED
+
+  @@map("goal_status")
+}
+
+enum GoalMetric {
+  BODY_WEIGHT_KG
+  BODY_FAT_PCT
+  WAIST_CM
+  WORKOUTS_PER_WEEK
+  NONE
+
+  @@map("goal_metric")
+}
+
+model Goal {
+  id                   String     @id @default(uuid(7)) @db.Uuid
+  userId               String     @map("user_id") @db.Uuid
+  type                 GoalType
+  status               GoalStatus @default(ACTIVE)
+  title                String
+  metric               GoalMetric @default(NONE)
+  startValue           Decimal?   @map("start_value") @db.Decimal(7, 2)
+  targetValue          Decimal?   @map("target_value") @db.Decimal(7, 2)
+  startDate            DateTime   @map("start_date") @db.Date
+  targetDate           DateTime?  @map("target_date") @db.Date
+  /// Optional activity goal alongside the transformation goal, e.g. 3 workouts/week.
+  workoutsPerWeek      Int?       @map("workouts_per_week") @db.SmallInt
+  /// Set when the user proceeded despite a safety warning.
+  safetyAcknowledgedAt DateTime?  @map("safety_acknowledged_at") @db.Timestamptz(3)
+  achievedAt           DateTime?  @map("achieved_at") @db.Timestamptz(3)
+  closedAt             DateTime?  @map("closed_at") @db.Timestamptz(3)
+  createdAt            DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt            DateTime   @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  events     GoalEvent[]
+  milestones GoalMilestone[]
+
+  @@index([userId, status])
+  @@map("goals")
+}
+
+enum GoalEventType {
+  CREATED
+  UPDATED
+  TIMELINE_EXTENDED
+  ACHIEVED
+  REPLACED
+  ARCHIVED
+
+  @@map("goal_event_type")
+}
+
+model GoalEvent {
+  id        String        @id @default(uuid(7)) @db.Uuid
+  goalId    String        @map("goal_id") @db.Uuid
+  userId    String        @map("user_id") @db.Uuid
+  type      GoalEventType
+  /// Changed fields: { "targetDate": { "from": "2026-12-01", "to": "2027-01-15" } }
+  changes   Json?
+  note      String?
+  createdAt DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  goal Goal @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([goalId, createdAt])
+  @@index([userId, createdAt])
+  @@map("goal_events")
+}
+
+model GoalMilestone {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  goalId     String?  @map("goal_id") @db.Uuid
+  title      String
+  value      Decimal? @db.Decimal(7, 2)
+  achievedAt DateTime @map("achieved_at") @db.Timestamptz(3)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  goal Goal? @relation(fields: [goalId], references: [id], onDelete: SetNull)
+
+  @@index([userId, achievedAt])
+  @@map("goal_milestones")
+}
+
+// ─── Daily targets ───────────────────────────────────────────────────────────
+// User-entered (automatic BMR/TDEE is on HOLD). Append-only: a change closes the
+// current row (effective_to) and inserts a new one. NULL means "no target".
+
+enum TargetSource {
+  MANUAL
+
+  @@map("target_source")
+}
+
+model DailyTarget {
+  id                   String       @id @default(uuid(7)) @db.Uuid
+  userId               String       @map("user_id") @db.Uuid
+  source               TargetSource @default(MANUAL)
+  caloriesKcal         Int?         @map("calories_kcal")
+  proteinG             Decimal?     @map("protein_g") @db.Decimal(6, 1)
+  carbsG               Decimal?     @map("carbs_g") @db.Decimal(6, 1)
+  fatG                 Decimal?     @map("fat_g") @db.Decimal(6, 1)
+  fiberG               Decimal?     @map("fiber_g") @db.Decimal(6, 1)
+  waterMl              Int?         @map("water_ml")
+  sleepHours           Decimal?     @map("sleep_hours") @db.Decimal(3, 1)
+  reason               String?
+  /// Safety warnings the user saw and accepted when saving these targets.
+  acknowledgedWarnings String[]     @default([]) @map("acknowledged_warnings")
+  effectiveFrom        DateTime     @map("effective_from") @db.Timestamptz(3)
+  effectiveTo          DateTime?    @map("effective_to") @db.Timestamptz(3)
+  createdAt            DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, effectiveFrom])
+  @@map("daily_targets")
 }

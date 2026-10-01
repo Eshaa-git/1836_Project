@@ -1,3 +1,5 @@
+import type { SafetyIssue } from "@/server/domain/safety/types";
+
 /**
  * Typed application errors. Services throw these; the action/route layer maps
  * them to safe user-facing responses. Anything that is not an AppError is
@@ -74,8 +76,10 @@ export class ConflictError extends AppError {
  * contains a recorded allergen). Never downgraded to a warning silently.
  */
 export class SafetyError extends AppError {
-  constructor(message: string, details?: Record<string, unknown>) {
-    super("SAFETY", 422, message, { details });
+  readonly issues: SafetyIssue[];
+  constructor(message: string, issues: SafetyIssue[] = []) {
+    super("SAFETY", 422, message);
+    this.issues = issues;
   }
 }
 

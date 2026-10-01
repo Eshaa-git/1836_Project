@@ -101,7 +101,8 @@ server/ai (Claude, tools)  →  calls the same services; the model never writes 
 - **domain**: deterministic calculations and rules. No I/O, no framework imports. Fully unit-tested.
 - **services**: use-cases. Take a `RequestContext` (`requestId`, `userId`, `now`, `timezone`, `logger`),
   run multi-step writes in one transaction, record audit events.
-- **repositories**: Prisma queries; user-owned reads/writes require `userId`.
+- **repositories**: shared Prisma queries. Services may also query Prisma directly, but every user-owned read or
+  write must be scoped by `userId` (covered by isolation tests).
 - **lib**: `env`, `db`, `logger`, `errors` (typed `AppError`s), `action` (`defineAction`), `context`.
 
 ### Authentication
@@ -116,6 +117,17 @@ server/ai (Claude, tools)  →  calls the same services; the model never writes 
 - Email uses a transport interface; `console` logs messages and keeps an in-memory outbox for tests. A real
   provider will be added before launch.
 - Data handling and the deletion policy are described in [privacy.md](privacy.md).
+
+### Safety layer (Phase 2)
+
+`src/server/domain/safety`, `targets/safety.ts` and `goals/goals.ts` return `SafetyIssue`s: `block` (refused),
+`warn` (allowed only after the user acknowledges that code) or `info`. Forms run the same pure functions live for
+instant feedback; services re-run them and throw `SafetyError` (issues reach the client via
+`ActionError.safetyIssues`). Acknowledged warning codes are stored with the saved target or goal.
+
+Goal lifecycle: `evaluateGoal` reports `no_target | no_data | in_progress | achieved | deadline_passed`. Achieved →
+the user saves a milestone and picks a next goal; deadline passed → a gentler extension date is suggested and only
+later dates are accepted. Nothing is ever made stricter automatically.
 
 Server actions return `ActionResult<T>`. Unexpected errors are logged with the request id and shown to users
 only as a generic message with a reference.
@@ -144,7 +156,7 @@ only as a generic message with a reference.
 | --- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------ |
 | 0   | Foundation                     | Tooling, database, shell, testing, CI                                                                                                                                    | ✅     |
 | 1   | Authentication and account     | Register, login, logout, reset, sessions, protected routes, delete account                                                                                               | ✅     |
-| 2   | Profile, restrictions, goals   | Basic + optional profile, routine and meal count, four restriction categories, goals with lifecycle and history, motivation, manual targets (safety-checked)             |        |
+| 2   | Profile, restrictions, goals   | Basic + optional profile, routine and meal count, four restriction categories, goals with lifecycle and history, motivation, manual targets (safety-checked)             | ✅     |
 | 3   | Food data and nutrition engine | USDA import, household portions, unit conversion, UNKNOWN-aware totals, estimates, allergen tagging                                                                      |        |
 | 4   | Food logging                   | Meal slots and statuses, target → eaten → remaining, edit/delete, saved meals, re-log, history search, hydration and sleep logs                                          |        |
 | 5   | Conversational core            | Claude assistant with tools: natural-language logging, corrections, clarifying questions, history questions                                                              |        |

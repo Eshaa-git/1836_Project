@@ -2,7 +2,8 @@ import "server-only";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
-import { createContext, type RequestContext } from "@/server/lib/context";
+import { createContext, type RequestContext, type UserContext } from "@/server/lib/context";
+import { db } from "@/server/lib/db";
 import { UnauthorizedError } from "@/server/lib/errors";
 import { auth, type AuthSession } from "./auth";
 
@@ -19,12 +20,18 @@ export async function requireSessionOrRedirect(): Promise<AuthSession> {
 }
 
 /** For actions and route handlers: request context for the signed-in user, or UnauthorizedError. */
-export async function requireUserContext(): Promise<RequestContext & { userId: string }> {
+export async function requireUserContext(): Promise<UserContext> {
   const session = await getSession();
   if (!session) throw new UnauthorizedError();
-  // Phase 2 replaces "UTC" with the timezone saved in the user's profile.
-  return createContext({ userId: session.user.id }) as RequestContext & { userId: string };
+  const timezone = await getUserTimezone(session.user.id);
+  return createContext({ userId: session.user.id, timezone }) as UserContext;
 }
+
+/** The user's saved IANA timezone ("UTC" until the profile is set up). Deduplicated per request. */
+export const getUserTimezone = cache(async (userId: string): Promise<string> => {
+  const profile = await db.userProfile.findUnique({ where: { userId }, select: { timezone: true } });
+  return profile?.timezone ?? "UTC";
+});
 
 export async function optionalUserContext(): Promise<RequestContext> {
   const session = await getSession();
